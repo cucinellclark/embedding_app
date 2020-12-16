@@ -33,6 +33,12 @@ deploy: deploy-all
 deploy-all: deploy-client 
 deploy-client: deploy-libs deploy-scripts deploy-docs
 
+deploy-service: deploy-libs deploy-scripts deploy-service-scripts deploy-specs
+
+deploy-specs:
+	mkdir -p $(TARGET)/services/$(APP_SERVICE)
+	rsync -arv app_specs $(TARGET)/services/$(APP_SERVICE)/.
+
 deploy-service-scripts:
 	export KB_TOP=$(TARGET); \
 	export KB_RUNTIME=$(DEPLOY_RUNTIME); \
@@ -42,7 +48,7 @@ deploy-service-scripts:
 	        base=`basename $$src .pl`; \
 	        echo install $$src $$base ; \
 	        cp $$src $(TARGET)/plbin ; \
-	        $(WRAP_PERL_SCRIPT) "$(TARGET)/plbin/$$basefile" $(TARGET)/services/$(SERVICE)/bin/$$base ; \
+	        $(WRAP_PERL_SCRIPT) "$(TARGET)/plbin/$$basefile" $(TARGET)/bin/$$base ; \
 	done
 
 
