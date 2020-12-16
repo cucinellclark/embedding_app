@@ -4,6 +4,8 @@ include $(TOP_DIR)/tools/Makefile.common
 DEPLOY_RUNTIME ?= /kb/runtime
 TARGET ?= /kb/deployment
 
+APP_SERVICE = app_service
+
 SRC_PERL = $(wildcard scripts/*.pl)
 BIN_PERL = $(addprefix $(BIN_DIR)/,$(basename $(notdir $(SRC_PERL))))
 DEPLOY_PERL = $(addprefix $(TARGET)/bin/,$(basename $(notdir $(SRC_PERL))))
