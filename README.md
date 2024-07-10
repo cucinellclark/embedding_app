@@ -4,8 +4,6 @@
 
 This repository holds a BV-BRC module.
 
-Template repository for PATRIC release engineered modules.
-
 ## About this module
 
 This module is a component of the BV-BRC build system. It is designed to fit into the
