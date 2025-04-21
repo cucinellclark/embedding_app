@@ -1,0 +1,81 @@
+{
+    "id": "RagDB",
+    "Script": "App-RagDB",
+    "label": "Create RAG database",
+    "description": "Create a rag database from a set of json documents or a jsonl file",
+    "default_memory": "32GB",
+    "parameters": [
+        {
+            "id": "document_folder",
+            "label": "Folder with multiple json documents",
+            "allow_multiple": true,
+            "required": 0,
+            "default": null,
+            "type": "string"
+        },
+        {
+            "id": "document_file",
+            "label": "jsonl file with document text",
+            "allow_multiple": true,
+            "required": 0,
+            "default": null,
+            "type": "string"
+        },
+        {
+            "id": "chunk_size",
+            "label": "Chunk size for the documents, -1 means no chunking and will disable chunk overlap, decent values are 1000-2000",
+            "allow_multiple": false,
+            "required": 0,
+            "default": -1,
+            "type": "number"
+        },
+        {
+            "id": "chunk_overlap",
+            "label": "Chunk overlap for the documents, -1 means no chunk overlap, decent values are 100-200",
+            "allow_multiple": false,
+            "required": 0,
+            "default": -1,
+            "type": "number"
+        },
+        {
+            "id": "embedding_endpoint",
+            "label": "URL for the embedding model",
+            "allow_multiple": false,
+            "required": 1,
+            "default": null,
+            "type": "string"
+        },
+        {
+            "id": "api_key",
+            "label": "API Key for accessing the model endpoint",
+            "allow_multiple": false,
+            "required": 0,
+            "default": "EMPTY",
+            "type": "string"
+        },
+        {
+            "id": "model_name",
+            "label": "Name of the embedding model",
+            "allow_multiple": false,
+            "required": 1,
+            "default": null,
+            "tye": "string"
+        },
+        {
+            "id": "output_path",
+            "label": "Output folder",
+            "allow_multiple": false,
+            "required": 1,
+            "default": null,
+            "type": "folder"
+        },
+        {
+            "id": "output_file",
+            "label": "File Basename",
+            "allow_multiple": false,
+            "required": 1,
+            "default": null,
+            "type": "wsid"
+        }
+    ]
+}

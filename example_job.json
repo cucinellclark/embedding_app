@@ -1,0 +1,11 @@
+{
+    "document_folder": "",
+    "document_file": "",
+    "embedding_endpoint": "http://mango.cels.anl.gov:8000/embedding/v1/embeddings",
+    "api_key": "EMPTY",
+    "model_name": "mistralai/Mistral-7B-Instruct-v0.3",
+    "chunk_size": -1,
+    "chunk_overlap": -1,
+    "output_path": "",
+    "output_file": "output.jsonl"
+}
