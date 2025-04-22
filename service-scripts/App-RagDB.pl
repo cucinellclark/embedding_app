@@ -13,42 +13,40 @@ use Cwd;
 our $global_ws;
 our $global_token;
 
-#my $script = Bio::KBase::AppService::AppScript->new(\&create_rag_db, \&preflight);
-my $script = Bio::KBase::AppService::AppScript->new(\&create_rag_db);
+#my $script = Bio::KBase::AppService::AppScript->new(\&create_embeddings, \&preflight);
+my $script = Bio::KBase::AppService::AppScript->new(\&create_embeddings);
 my $rc = $script->run(\@ARGV);
 exit $rc;
 
-sub create_rag_db {
+sub create_embeddings {
     my ($app, $app_def, $raw_params, $params) = @_;
     
     # Get the current directory
     my $cwd = getcwd();
+
+    print "Running embedding app in cwd: $cwd\n";
     
     # Extract parameters from the input
     my $document_folder = $params->{document_folder} || "";
     my $document_file = $params->{document_file} || "";
-    my $embedding_endpoint = $params->{embedding_endpoint} || "http://mango.cels.anl.gov:8000/embedding/v1/embeddings";
+    my $embedding_endpoint = $params->{embedding_endpoint};
+    die "Error: embedding_endpoint parameter is required\n" unless $embedding_endpoint;
     my $api_key = $params->{api_key} || "EMPTY";
-    my $model_name = $params->{model_name} || "mistralai/Mistral-7B-Instruct-v0.3";
+    my $model_name = $params->{model_name};
+    die "Error: model_name parameter is required\n" unless $model_name;
     my $chunk_size = $params->{chunk_size} || -1;
     my $chunk_overlap = $params->{chunk_overlap} || -1;
     my $output_path = $params->{output_path} || "";
     my $output_file = $params->{output_file} || "output.jsonl";
-    
-    # Construct the full output file path if output_path is provided
-    my $full_output_file = $output_file;
-    if ($output_path) {
-        $full_output_file = "$output_path/$output_file";
-    }
+
     
     # Construct the command to run the embed_document_corpus.py script
     my @cmd = (
-        "python", 
-        "$cwd/scripts/embed_document_corpus.py",
+        "embed_document_corpus",
         "--api_key", $api_key,
         "--endpoint", $embedding_endpoint,
         "--model_name", $model_name,
-        "--output_file", $full_output_file
+        "--output_file", $output_file
     );
     
     # Add document_file or document_folder parameter if provided
@@ -56,6 +54,8 @@ sub create_rag_db {
         push @cmd, "--document_file", $document_file;
     } elsif ($document_folder) {
         push @cmd, "--document_folder", $document_folder;
+    } else {
+        die "Error: document_file or document_folder parameter is required\n";
     }
     
     # Add chunk_size and chunk_overlap parameters if they are not the default values
@@ -82,6 +82,6 @@ sub create_rag_db {
     
     # Return the output file path
     return {
-        output_file => $full_output_file
+        output_file => $output_file
     };
 }
