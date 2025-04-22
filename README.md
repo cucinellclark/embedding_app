@@ -1,4 +1,4 @@
-# BV-BRC Module
+# Embedding Application
 
 ## Overview
 
