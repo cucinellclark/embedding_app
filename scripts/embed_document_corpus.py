@@ -134,9 +134,7 @@ if __name__ == "__main__":
     elif document_file:
         process_document_file(api_key, endpoint, model_name, document_file, output_file, chunk_size, chunk_overlap)
     elif document_folder:
-        print("not ready for testing yet")
-        sys.exit(1)
-        # process_document_folder(api_key, endpoint, model_name, document_folder, output_file, chunk_size, chunk_overlap)
+        process_document_folder(api_key, endpoint, model_name, document_folder, output_file, chunk_size, chunk_overlap)
     else:
         print("Error: Please provide either document_file or document_folder.")
         sys.exit(1)
