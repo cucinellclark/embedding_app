@@ -11,7 +11,7 @@ This module is a component of the BV-BRC build system. It is designed to fit int
 the components of the BV-BRC. More documentation is available [here](https://github.com/BV-BRC/dev_container/tree/master/README.md).
 
 This is hard coded to work with the following response schema:
-
+<pre>
 {
     'id': vllm-server-id,
     'object': 'list',
@@ -26,6 +26,7 @@ This is hard coded to work with the following response schema:
         }
     ]
 }
+</pre>
 
 Outputs the embeddings in a jsonl file like so:
 {
