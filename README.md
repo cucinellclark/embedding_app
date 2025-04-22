@@ -43,18 +43,7 @@ Outputs the embeddings in a jsonl file like so:
 
 Will accept two formats for input: a folder or a jsonl file
 
-The folder should contain json files with the following format:
-<pre>
-{
-    "doc_id": "unique_id",
-    "text": "This is the document text I would like to embed..."
-    "metadata": [
-        ...
-    ]
-}
-</pre>
-
-The file should be a jsonl document where each line is a json object. Example below:
+Below is the expected format for the file input, along with each file in the folder input option
 <pre>
 {"doc_id": "unique_id_1", "text": "This is the document text I would like to embed...", "metadata": [ ... ]}
 {"doc_id": "unique_id_2", "text": "This is the document text I would like to embed that is different...", "metadata": [ ... ]}
