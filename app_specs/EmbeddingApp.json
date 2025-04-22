@@ -1,8 +1,8 @@
 {
-    "id": "RagDB",
-    "Script": "App-RagDB",
-    "label": "Create RAG database",
-    "description": "Create a rag database from a set of json documents or a jsonl file",
+    "id": "EmbeddingApp",
+    "Script": "App-Embedding",
+    "label": "Create embeddings for a given set of documents",
+    "description": "Create a embeddings from a set of json documents or a jsonl file",
     "default_memory": "32GB",
     "parameters": [
         {
