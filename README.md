@@ -31,7 +31,12 @@ This is hard coded to work with the following response schema:
 Outputs the embeddings in a jsonl file like so:
 <pre>
 {
-    "doc_id": "unique_id",
+    "index": 0,
+    "object": "embedding",
+    "source": source file,
+    "doc_id": unique generated id linking back to full document,
+    "chunk_index": index of the chunk of the full document,
+    "chunk_text": the embedding text of this chunk (could be the full document)
     "embedding": [...]
 }
 </pre>
