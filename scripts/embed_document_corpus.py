@@ -5,10 +5,6 @@ import argparse
 from embedding_utils import embed_document, test_embedding_endpoint
 from text_utils import validate_jsonl_file, validate_jsonl_files_in_directory
 
-from memory_profiler import profile
-sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
-
-@profile
 def process_document_file(api_key, endpoint, model_name, document_file, output_file, chunk_size=-1, chunk_overlap=-1):
     """
     Process a single document file for embedding.
@@ -22,6 +18,7 @@ def process_document_file(api_key, endpoint, model_name, document_file, output_f
         chunk_size: Size of text chunks (if applicable)
         chunk_overlap: Overlap between chunks (if applicable)
     """
+    
     print(f"Processing document file: {document_file}")
     
     with open(document_file, 'r') as f:
@@ -67,6 +64,7 @@ def process_document_folder(api_key, endpoint, model_name, document_folder, outp
             print(f"Embeddings saved to: {output_file}")
 
 if __name__ == "__main__":
+    
     parser = argparse.ArgumentParser()
     parser.add_argument("--api_key", type=str, required=False, default="EMPTY")
     parser.add_argument("--endpoint", type=str, required=True)
