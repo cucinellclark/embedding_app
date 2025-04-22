@@ -29,14 +29,17 @@ This is hard coded to work with the following response schema:
 </pre>
 
 Outputs the embeddings in a jsonl file like so:
+<pre>
 {
     "doc_id": "unique_id",
     "embedding": [...]
 }
+</pre>
 
 Will accept two formats for input: a folder or a jsonl file
 
 The folder should contain json files with the following format:
+<pre>
 {
     "doc_id": "unique_id",
     "text": "This is the document text I would like to embed..."
@@ -44,7 +47,10 @@ The folder should contain json files with the following format:
         ...
     ]
 }
+</pre>
 
 The file should be a jsonl document where each line is a json object. Example below:
+<pre>
 {"doc_id": "unique_id_1", "text": "This is the document text I would like to embed...", "metadata": [ ... ]}
 {"doc_id": "unique_id_2", "text": "This is the document text I would like to embed that is different...", "metadata": [ ... ]}
+</pre>
