@@ -1,4 +1,4 @@
-# BV-BRC Module
+# Embedding Application
 
 ## Overview
 
@@ -31,25 +31,19 @@ This is hard coded to work with the following response schema:
 Outputs the embeddings in a jsonl file like so:
 <pre>
 {
-    "doc_id": "unique_id",
+    "index": 0,
+    "object": "embedding",
+    "source": source file,
+    "doc_id": unique generated id linking back to full document,
+    "chunk_index": index of the chunk of the full document,
+    "chunk_text": the embedding text of this chunk (could be the full document)
     "embedding": [...]
 }
 </pre>
 
 Will accept two formats for input: a folder or a jsonl file
 
-The folder should contain json files with the following format:
-<pre>
-{
-    "doc_id": "unique_id",
-    "text": "This is the document text I would like to embed..."
-    "metadata": [
-        ...
-    ]
-}
-</pre>
-
-The file should be a jsonl document where each line is a json object. Example below:
+Below is the expected format for the file input, along with each file in the folder input option
 <pre>
 {"doc_id": "unique_id_1", "text": "This is the document text I would like to embed...", "metadata": [ ... ]}
 {"doc_id": "unique_id_2", "text": "This is the document text I would like to embed that is different...", "metadata": [ ... ]}
