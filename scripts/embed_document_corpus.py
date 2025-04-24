@@ -4,7 +4,7 @@ import os,glob,sys
 import argparse
 from embedding_utils import embed_document, test_embedding_endpoint
 from text_utils import validate_jsonl_file, validate_jsonl_files_in_directory
-from lib.tfidf_embed import process_jsonl_documents
+from tfidf_embed import process_jsonl_documents
 
 def process_document_file(api_key, endpoint, model_name, document_file, output_file, chunk_size=-1, chunk_overlap=-1, vectorizer_file=None, embed_dim=768):
     """
