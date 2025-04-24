@@ -4,9 +4,9 @@ import os,glob,sys
 import argparse
 from embedding_utils import embed_document, test_embedding_endpoint
 from text_utils import validate_jsonl_file, validate_jsonl_files_in_directory
-from tfidf_embed import process_jsonl_documents
+from tfidf_embed import process_jsonl_documents_tfidf
 
-def process_document_file(api_key, endpoint, model_name, document_file, output_file, chunk_size=-1, chunk_overlap=-1, vectorizer_file=None, embed_dim=768):
+def process_document_file(api_key, endpoint, model_name, document_file, output_file, chunk_size=-1, chunk_overlap=-1):
     """
     Process a single document file for embedding.
     
@@ -27,7 +27,7 @@ def process_document_file(api_key, endpoint, model_name, document_file, output_f
     # Handle TF-IDF model
     if model_name.lower() == "tfidf":
         print("Using TF-IDF embedding model")
-        process_jsonl_documents(document_file, output_file, vectorizer_file, embed_dim)
+        process_jsonl_documents_tfidf(document_file, output_file, chunk_size, chunk_overlap)
         return
     
     # Regular embedding process
@@ -40,7 +40,7 @@ def process_document_file(api_key, endpoint, model_name, document_file, output_f
     
     print(f"Embeddings saved to: {output_file}")
 
-def process_document_folder(api_key, endpoint, model_name, document_folder, output_file, chunk_size=-1, chunk_overlap=-1, vectorizer_file=None, embed_dim=768):
+def process_document_folder(api_key, endpoint, model_name, document_folder, output_file, chunk_size=-1, chunk_overlap=-1,):
     """
     Process all documents in a folder for embedding.
     
@@ -70,7 +70,7 @@ def process_document_folder(api_key, endpoint, model_name, document_folder, outp
                 if os.path.isfile(file):
                     f.write(f"{file}\n")
         
-        process_jsonl_documents(temp_file, output_file, vectorizer_file, embed_dim)
+        process_jsonl_documents_tfidf(temp_file, output_file)
         
         # Clean up temporary file
         os.remove(temp_file)
@@ -106,8 +106,6 @@ if __name__ == "__main__":
     parser.add_argument("--chunk_overlap", type=int, required=False, default=-1)
     parser.add_argument("--terminate_on_error", action="store_true", required=False)
     parser.add_argument("--output_file", type=str, required=True)
-    parser.add_argument("--vectorizer_file", type=str, required=False, default=None)
-    parser.add_argument("--embed_dim", type=int, required=False, default=768)
     args = parser.parse_args()
 
     api_key = args.api_key
@@ -119,8 +117,6 @@ if __name__ == "__main__":
     chunk_overlap = args.chunk_overlap
     output_file = args.output_file
     terminate_on_error = args.terminate_on_error
-    vectorizer_file = args.vectorizer_file
-    embed_dim = args.embed_dim
 
     # Check output parameters first
     if not output_file:
@@ -168,9 +164,9 @@ if __name__ == "__main__":
         print("Error: Please provide either document_file or document_folder, not both.")
         sys.exit(1)
     elif document_file:
-        process_document_file(api_key, endpoint, model_name, document_file, output_file, chunk_size, chunk_overlap, vectorizer_file, embed_dim)
+        process_document_file(api_key, endpoint, model_name, document_file, output_file, chunk_size, chunk_overlap)
     elif document_folder: 
-        process_document_folder(api_key, endpoint, model_name, document_folder, output_file, chunk_size, chunk_overlap, vectorizer_file, embed_dim)
+        process_document_folder(api_key, endpoint, model_name, document_folder, output_file, chunk_size, chunk_overlap)
     else:
         print("Error: Please provide either document_file or document_folder.")
         sys.exit(1)

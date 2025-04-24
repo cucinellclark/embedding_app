@@ -64,7 +64,7 @@ def stream_jsonl_documents(jsonl_file):
     with open(jsonl_file, 'r') as f:
         for line in f:
             doc = json.loads(line)
-            yield preprocess_text(doc['text'])
+            yield doc['doc_id'], preprocess_text(doc['text'])
 
 def process_documents(documents_file, output_file, vectorizer_file, embed_dim):
     # Step 1: Build vocabulary
@@ -104,7 +104,7 @@ def process_documents(documents_file, output_file, vectorizer_file, embed_dim):
     print(f"\nSaved final TF-IDF matrix with shape {final_matrix.shape} to {output_file}")
     print(f"Saved vectorizer components to {vectorizer_file}_vocab.npy and {vectorizer_file}_idf.npy")
 
-def process_jsonl_documents(jsonl_file, output_file, vectorizer_file, embed_dim=768):
+def process_jsonl_documents_tfidf(jsonl_file, output_file, chunk_size=-1, chunk_overlap=-1):
     """
     Process a JSONL file containing documents and generate TF-IDF embeddings.
     
@@ -114,16 +114,21 @@ def process_jsonl_documents(jsonl_file, output_file, vectorizer_file, embed_dim=
         vectorizer_file: Base path for saving vectorizer components
         embed_dim: Dimension of the embedding vectors
     """
-    import pdb; pdb.set_trace()
-    # Step 1: Build vocabulary
+    vectorizer_file = output_file.replace(".jsonl", "")
+    # Step 1: Build vocabulary  
     print("Building vocabulary...")
-    vocab_vectorizer = CountVectorizer(max_features=embed_dim)
-    vocab_vectorizer.fit(stream_jsonl_documents(jsonl_file))
+    vocab_vectorizer = CountVectorizer(max_features=EMBED_DIM)
+    doc_list = []
+    text_list = []
+    for doc_id, text in stream_jsonl_documents(jsonl_file):
+        doc_list.append(doc_id)
+        text_list.append(text)
+    vocab_vectorizer.fit(text_list)
 
     # Step 2: Initialize TF-IDF vectorizer with fixed vocabulary
     print("Creating TF-IDF vectorizer...")
     tfidf_vectorizer = TfidfVectorizer(vocabulary=vocab_vectorizer.vocabulary_)
-    tfidf_vectorizer.fit(stream_jsonl_documents(jsonl_file))
+    tfidf_vectorizer.fit(text_list)
 
     # Save vectorizer components
     print("Saving vectorizer components...")
@@ -139,23 +144,19 @@ def process_jsonl_documents(jsonl_file, output_file, vectorizer_file, embed_dim=
 
     batch = []
     batch_metadata = []
-    
-    for doc in stream_jsonl_documents(jsonl_file):
-        with open(jsonl_file, 'r') as f:
-            for line in f:
-                if preprocess_text(json.loads(line)['text']) == doc:
-                    batch_metadata.append(json.loads(line))
-                    break
-        
-        batch.append(doc)
-        
-        if len(batch) >= BATCH_SIZE:
-            tfidf_matrix = tfidf_vectorizer.transform(batch).toarray()
-            all_tfidf.append(tfidf_matrix)
-            all_metadata.extend(batch_metadata)
-            batch = []
-            batch_metadata = []
-            print(f"Processed batch of {len(tfidf_matrix)} documents")
+    for doc_id, text in zip(doc_list, text_list):
+        chunk_index = 0
+        for chunk in chunk_text(text, chunk_size, chunk_overlap):
+            batch.append(chunk)
+            batch_metadata.append({"doc_id": doc_id, "text": chunk, "chunk_index": chunk_index})
+            chunk_index += 1
+            if len(batch) >= BATCH_SIZE:
+                tfidf_matrix = tfidf_vectorizer.transform(batch).toarray()
+                all_tfidf.append(tfidf_matrix)
+                all_metadata.extend(batch_metadata)
+                batch = []
+                batch_metadata = []
+                print(f"Processed batch of {len(tfidf_matrix)} documents")
 
     # Process any remaining documents
     if batch:
@@ -176,7 +177,7 @@ def process_jsonl_documents(jsonl_file, output_file, vectorizer_file, embed_dim=
                 "embedding": embedding.tolist(),
                 "source": jsonl_file,
                 "doc_id": metadata['doc_id'],
-                "chunk_index": 0,
+                "chunk_index": metadata['chunk_index'],
                 "chunk_text": metadata['text']
             }
             out_f.write(json.dumps(output_data) + '\n')
