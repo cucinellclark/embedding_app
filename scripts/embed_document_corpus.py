@@ -4,8 +4,9 @@ import os,glob,sys
 import argparse
 from embedding_utils import embed_document, test_embedding_endpoint
 from text_utils import validate_jsonl_file, validate_jsonl_files_in_directory
+from lib.tfidf_embed import process_jsonl_documents
 
-def process_document_file(api_key, endpoint, model_name, document_file, output_file, chunk_size=-1, chunk_overlap=-1):
+def process_document_file(api_key, endpoint, model_name, document_file, output_file, chunk_size=-1, chunk_overlap=-1, vectorizer_file=None, embed_dim=768):
     """
     Process a single document file for embedding.
     
@@ -17,10 +18,20 @@ def process_document_file(api_key, endpoint, model_name, document_file, output_f
         output_file: Path to the output file
         chunk_size: Size of text chunks (if applicable)
         chunk_overlap: Overlap between chunks (if applicable)
+        vectorizer_file: Base path for saving vectorizer components (for TF-IDF)
+        embed_dim: Dimension of the embedding vectors (for TF-IDF)
     """
     
     print(f"Processing document file: {document_file}")
     
+    # Handle TF-IDF model
+    import pdb; pdb.set_trace()
+    if model_name.lower() == "tfidf":
+        print("Using TF-IDF embedding model")
+        process_jsonl_documents(document_file, output_file, vectorizer_file, embed_dim)
+        return
+    
+    # Regular embedding process
     with open(document_file, 'r') as f:
         for line in f:
             file_json = json.loads(line)
@@ -30,8 +41,7 @@ def process_document_file(api_key, endpoint, model_name, document_file, output_f
     
     print(f"Embeddings saved to: {output_file}")
 
-
-def process_document_folder(api_key, endpoint, model_name, document_folder, output_file, chunk_size=-1, chunk_overlap=-1):
+def process_document_folder(api_key, endpoint, model_name, document_folder, output_file, chunk_size=-1, chunk_overlap=-1, vectorizer_file=None, embed_dim=768):
     """
     Process all documents in a folder for embedding.
     
@@ -43,9 +53,29 @@ def process_document_folder(api_key, endpoint, model_name, document_folder, outp
         output_file: Path to the output file
         chunk_size: Size of text chunks (if applicable)
         chunk_overlap: Overlap between chunks (if applicable)
+        vectorizer_file: Base path for saving vectorizer components (for TF-IDF)
+        embed_dim: Dimension of the embedding vectors (for TF-IDF)
     """
     print(f"Processing documents in folder: {document_folder}")
     
+    # Handle TF-IDF model
+    if model_name.lower() == "tfidf":
+        print("Using TF-IDF embedding model")
+        
+        # Create a temporary file listing all documents in the folder
+        temp_file = "temp_doc_list.txt"
+        with open(temp_file, 'w') as f:
+            for file in glob.glob(os.path.join(document_folder, "*")):
+                if os.path.isfile(file):
+                    f.write(f"{file}\n")
+        
+        process_jsonl_documents(temp_file, output_file, vectorizer_file, embed_dim)
+        
+        # Clean up temporary file
+        os.remove(temp_file)
+        return
+    
+    # Regular embedding process
     # Get all files in the folder
     files = glob.glob(os.path.join(document_folder, "*"))
     
@@ -75,6 +105,8 @@ if __name__ == "__main__":
     parser.add_argument("--chunk_overlap", type=int, required=False, default=-1)
     parser.add_argument("--terminate_on_error", action="store_true", required=False)
     parser.add_argument("--output_file", type=str, required=True)
+    parser.add_argument("--vectorizer_file", type=str, required=False, default=None)
+    parser.add_argument("--embed_dim", type=int, required=False, default=768)
     args = parser.parse_args()
 
     api_key = args.api_key
@@ -86,6 +118,8 @@ if __name__ == "__main__":
     chunk_overlap = args.chunk_overlap
     output_file = args.output_file
     terminate_on_error = args.terminate_on_error
+    vectorizer_file = args.vectorizer_file
+    embed_dim = args.embed_dim
 
     # Check output parameters first
     if not output_file:
@@ -123,7 +157,8 @@ if __name__ == "__main__":
         print("All documents validated successfully.")
     
     # Test the embedding endpoint before processing any documents
-    if not test_embedding_endpoint(api_key, endpoint, model_name):
+    # Skip endpoint test for TF-IDF model
+    if model_name.lower() != "tfidf" and not test_embedding_endpoint(api_key, endpoint, model_name):
         print("Embedding endpoint test failed. Exiting program. Check error log for more details.")
         sys.exit(1)
 
@@ -132,9 +167,9 @@ if __name__ == "__main__":
         print("Error: Please provide either document_file or document_folder, not both.")
         sys.exit(1)
     elif document_file:
-        process_document_file(api_key, endpoint, model_name, document_file, output_file, chunk_size, chunk_overlap)
+        process_document_file(api_key, endpoint, model_name, document_file, output_file, chunk_size, chunk_overlap, vectorizer_file, embed_dim)
     elif document_folder: 
-        process_document_folder(api_key, endpoint, model_name, document_folder, output_file, chunk_size, chunk_overlap)
+        process_document_folder(api_key, endpoint, model_name, document_folder, output_file, chunk_size, chunk_overlap, vectorizer_file, embed_dim)
     else:
         print("Error: Please provide either document_file or document_folder.")
         sys.exit(1)

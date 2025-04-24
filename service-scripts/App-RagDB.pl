@@ -40,7 +40,6 @@ sub create_embeddings {
     my $output_file = $params->{output_file} || "output.jsonl";
     my $terminate_on_error = $params->{terminate_on_error} || 0;
 
-    
     # Construct the command to run the embed_document_corpus.py script
     my @cmd = (
         "embed_document_corpus",
