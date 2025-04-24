@@ -59,6 +59,13 @@ def stream_all_documents(doc_file):
             else:
                 yield preprocess_text(file_path)
 
+def stream_jsonl_text(jsonl_file):
+    """Stream documents from a JSONL file."""
+    with open(jsonl_file, 'r') as f:
+        for line in f:
+            doc = json.loads(line)
+            yield preprocess_text(doc['text'])
+
 def stream_jsonl_documents(jsonl_file):
     """Stream documents from a JSONL file."""
     with open(jsonl_file, 'r') as f:
@@ -66,76 +73,103 @@ def stream_jsonl_documents(jsonl_file):
             doc = json.loads(line)
             yield doc['doc_id'], preprocess_text(doc['text'])
 
-def process_documents(documents_file, output_file, vectorizer_file, embed_dim):
-    # Step 1: Build vocabulary
+def load_vectorizer_from_config(model_config_file, jsonl_file):
+    """
+    Load a pre-trained TF-IDF vectorizer from a model configuration file.
+    
+    Args:
+        model_config_file: Path to the model configuration file
+        jsonl_file: Path to the JSONL file containing documents (used if creating a new vectorizer)
+        
+    Returns:
+        tfidf_vectorizer: The loaded or newly created TF-IDF vectorizer
+    """
+    if not model_config_file or not os.path.exists(model_config_file):
+        print("No model config file provided or file does not exist. Creating new vectorizer.")
+        return None
+        
+    print(f"Loading pre-trained vectorizer from config file: {model_config_file}")
+    with open(model_config_file, 'r') as f:
+        config = json.load(f)
+    
+    if 'model_prefix' not in config:
+        print("Warning: 'model_prefix' not found in config file. Creating new vectorizer.")
+        return None
+        
+    model_prefix = config['model_prefix']
+    vocab_path = f"{model_prefix}_vocab.npy"
+    idf_path = f"{model_prefix}_idf.npy"
+    
+    if not os.path.exists(vocab_path) or not os.path.exists(idf_path):
+        print(f"Warning: Vectorizer components not found at {model_prefix}. Creating new vectorizer.")
+        return None
+
+    print(f"Loading vocabulary from {vocab_path}")
+    vocabulary = np.load(vocab_path, allow_pickle=True)
+    
+    print(f"Loading IDF values from {idf_path}")
+    idf_values = np.load(idf_path)
+    
+    # Create vocabulary dictionary
+    vocab_dict = {word: idx for idx, word in enumerate(vocabulary)}
+    
+    # Initialize TF-IDF vectorizer with loaded vocabulary and IDF values
+    print("Initializing TF-IDF vectorizer with loaded components...")
+    tfidf_vectorizer = TfidfVectorizer(vocabulary=vocab_dict)
+    tfidf_vectorizer.idf_ = idf_values
+    
+    print("Pre-trained vectorizer loaded successfully")
+    return tfidf_vectorizer
+
+def create_new_vectorizer(vectorizer_file, jsonl_file):
+    """
+    Create a new TF-IDF vectorizer from the input documents.
+    
+    Args:
+        vectorizer_file: Base path for saving vectorizer components
+        jsonl_file: Path to the JSONL file containing documents
+        
+    Returns:
+        tfidf_vectorizer: The newly created TF-IDF vectorizer
+    """
+    # Step 1: Build vocabulary  
     print("Building vocabulary...")
     vocab_vectorizer = CountVectorizer(max_features=EMBED_DIM)
-    vocab_vectorizer.fit(stream_all_documents(documents_file))
+    vocab_vectorizer.fit(stream_jsonl_text(jsonl_file))
 
     # Step 2: Initialize TF-IDF vectorizer with fixed vocabulary
     print("Creating TF-IDF vectorizer...")
     tfidf_vectorizer = TfidfVectorizer(vocabulary=vocab_vectorizer.vocabulary_)
+    tfidf_vectorizer.fit(stream_jsonl_text(jsonl_file))
 
     # Save vectorizer components
     print("Saving vectorizer components...")
-    # Save vocabulary as a dictionary mapping terms to indices
     vocabulary = np.array(list(tfidf_vectorizer.vocabulary_.keys()))
     np.save(f"{vectorizer_file}_vocab.npy", vocabulary)
-    
-    # Save IDF values
-    # We need to fit the vectorizer to get the IDF values
-    tfidf_vectorizer.fit(stream_all_documents(documents_file))
     idf_values = tfidf_vectorizer.idf_
     np.save(f"{vectorizer_file}_idf.npy", idf_values)
+    
+    return tfidf_vectorizer
 
-    # Step 3: Process batches, collect results
-    print("Processing batches and accumulating TF-IDF matrix...")
-    all_tfidf = []
-
-    for i, batch in enumerate(stream_document_batches(documents_file, BATCH_SIZE)):
-        tfidf_matrix = tfidf_vectorizer.transform(batch).toarray()
-        all_tfidf.append(tfidf_matrix)
-        print(f"Processed batch {i} with shape {tfidf_matrix.shape}")
-
-    # Concatenate and save
-    final_matrix = np.vstack(all_tfidf)
-    np.save(output_file, final_matrix)
-
-    print(f"\nSaved final TF-IDF matrix with shape {final_matrix.shape} to {output_file}")
-    print(f"Saved vectorizer components to {vectorizer_file}_vocab.npy and {vectorizer_file}_idf.npy")
-
-def process_jsonl_documents_tfidf(jsonl_file, output_file, chunk_size=-1, chunk_overlap=-1):
+def process_jsonl_documents_tfidf(jsonl_file, output_file, chunk_size=-1, chunk_overlap=-1, model_config_file=None):
     """
     Process a JSONL file containing documents and generate TF-IDF embeddings.
     
     Args:
         jsonl_file: Path to the JSONL file containing documents
         output_file: Path to the output file for embeddings
-        vectorizer_file: Base path for saving vectorizer components
-        embed_dim: Dimension of the embedding vectors
+        chunk_size: Size of text chunks for processing
+        chunk_overlap: Overlap between chunks
+        model_config_file: Path to a JSON file containing model configuration
     """
     vectorizer_file = output_file.replace(".jsonl", "")
-    # Step 1: Build vocabulary  
-    print("Building vocabulary...")
-    vocab_vectorizer = CountVectorizer(max_features=EMBED_DIM)
-    doc_list = []
-    text_list = []
-    for doc_id, text in stream_jsonl_documents(jsonl_file):
-        doc_list.append(doc_id)
-        text_list.append(text)
-    vocab_vectorizer.fit(text_list)
-
-    # Step 2: Initialize TF-IDF vectorizer with fixed vocabulary
-    print("Creating TF-IDF vectorizer...")
-    tfidf_vectorizer = TfidfVectorizer(vocabulary=vocab_vectorizer.vocabulary_)
-    tfidf_vectorizer.fit(text_list)
-
-    # Save vectorizer components
-    print("Saving vectorizer components...")
-    vocabulary = np.array(list(tfidf_vectorizer.vocabulary_.keys()))
-    np.save(f"{vectorizer_file}_vocab.npy", vocabulary)
-    idf_values = tfidf_vectorizer.idf_
-    np.save(f"{vectorizer_file}_idf.npy", idf_values)
+    
+    # Try to load a pre-trained vectorizer from the config file
+    tfidf_vectorizer = load_vectorizer_from_config(model_config_file, jsonl_file)
+    
+    # If no pre-trained vectorizer was loaded, create a new one
+    if tfidf_vectorizer is None:
+        tfidf_vectorizer = create_new_vectorizer(vectorizer_file, jsonl_file)
 
     # Step 3: Process batches, collect results
     print("Processing batches and accumulating TF-IDF matrix...")
@@ -144,7 +178,7 @@ def process_jsonl_documents_tfidf(jsonl_file, output_file, chunk_size=-1, chunk_
 
     batch = []
     batch_metadata = []
-    for doc_id, text in zip(doc_list, text_list):
+    for doc_id, text in stream_jsonl_documents(jsonl_file):
         chunk_index = 0
         for chunk in chunk_text(text, chunk_size, chunk_overlap):
             batch.append(chunk)
