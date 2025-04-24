@@ -25,7 +25,6 @@ def process_document_file(api_key, endpoint, model_name, document_file, output_f
     print(f"Processing document file: {document_file}")
     
     # Handle TF-IDF model
-    import pdb; pdb.set_trace()
     if model_name.lower() == "tfidf":
         print("Using TF-IDF embedding model")
         process_jsonl_documents(document_file, output_file, vectorizer_file, embed_dim)
@@ -60,6 +59,8 @@ def process_document_folder(api_key, endpoint, model_name, document_folder, outp
     
     # Handle TF-IDF model
     if model_name.lower() == "tfidf":
+        print('haven\'t implemented this yet')
+        sys.exit(1)
         print("Using TF-IDF embedding model")
         
         # Create a temporary file listing all documents in the folder
