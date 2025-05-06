@@ -5,9 +5,9 @@ from sklearn.feature_extraction.text import CountVectorizer, TfidfVectorizer
 import re
 from embedding_utils import chunk_text
 import nltk
+nltk.data.path.append("./nltk_data")
 from nltk.corpus import stopwords
 from nltk.stem import WordNetLemmatizer
-import nltk.data
 
 BATCH_SIZE = 100
 EMBED_DIM = 768  # Adjust as needed
