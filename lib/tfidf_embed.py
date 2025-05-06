@@ -4,30 +4,47 @@ import json
 from sklearn.feature_extraction.text import CountVectorizer, TfidfVectorizer
 import re
 from embedding_utils import chunk_text
+import nltk
+from nltk.corpus import stopwords
+from nltk.stem import WordNetLemmatizer
+import nltk.data
 
 BATCH_SIZE = 100
 EMBED_DIM = 768  # Adjust as needed
 
+def check_nltk_data():
+    """Check if required NLTK data is downloaded, if not download it."""
+    try:
+        nltk.data.find('corpora/stopwords')
+        nltk.data.find('tokenizers/punkt')
+        nltk.data.find('corpora/wordnet')
+    except LookupError:
+        print("Downloading required NLTK data...")
+        nltk.download('stopwords')
+        nltk.download('punkt')
+        nltk.download('wordnet')
+
+# Check and download NLTK data if needed
+check_nltk_data()
+
+stop_words = set(stopwords.words('english'))
+lemmatizer = WordNetLemmatizer()
+
 def preprocess_text(text):
     """
-    Preprocess text for TF-IDF vectorization:
-    - Convert to lowercase
-    - Remove special characters and numbers
-    - Normalize whitespace
+    Enhanced preprocessing for TF-IDF in RAG:
+    - Lowercase
+    - Remove non-alphabetic characters
+    - Tokenize
+    - Remove stopwords
+    - Lemmatize
+    - Rejoin to string
     """
-    # Convert to lowercase
     text = text.lower()
-    
-    # Remove special characters and numbers, keep only letters and spaces
     text = re.sub(r'[^a-z\s]', ' ', text)
-    
-    # Normalize whitespace (replace multiple spaces with single space)
-    text = re.sub(r'\s+', ' ', text)
-    
-    # Strip leading/trailing whitespace
-    text = text.strip()
-    
-    return text
+    tokens = nltk.word_tokenize(text)
+    tokens = [lemmatizer.lemmatize(token) for token in tokens if token not in stop_words and len(token) > 2]
+    return ' '.join(tokens)
 
 def stream_document_batches(doc_file, batch_size=100):
     batch = []
@@ -104,7 +121,7 @@ def process_documents(documents_file, output_file, vectorizer_file, embed_dim):
     print(f"\nSaved final TF-IDF matrix with shape {final_matrix.shape} to {output_file}")
     print(f"Saved vectorizer components to {vectorizer_file}_vocab.npy and {vectorizer_file}_idf.npy")
 
-def process_jsonl_documents_tfidf(jsonl_file, output_file, chunk_size=-1, chunk_overlap=-1):
+def process_jsonl_documents_tfidf(jsonl_file, output_file, chunk_size=-1, chunk_overlap=-1, chunk_method="fixed"):
     """
     Process a JSONL file containing documents and generate TF-IDF embeddings.
     
@@ -144,9 +161,10 @@ def process_jsonl_documents_tfidf(jsonl_file, output_file, chunk_size=-1, chunk_
 
     batch = []
     batch_metadata = []
+    chunk_iterator = chunk_text(chunk_method)
     for doc_id, text in zip(doc_list, text_list):
         chunk_index = 0
-        for chunk in chunk_text(text, chunk_size, chunk_overlap):
+        for chunk in chunk_iterator(text, chunk_size, chunk_overlap):
             batch.append(chunk)
             batch_metadata.append({"doc_id": doc_id, "text": chunk, "chunk_index": chunk_index})
             chunk_index += 1

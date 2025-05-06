@@ -6,7 +6,7 @@ from embedding_utils import embed_document, test_embedding_endpoint
 from text_utils import validate_jsonl_file, validate_jsonl_files_in_directory
 from tfidf_embed import process_jsonl_documents_tfidf
 
-def process_document_file(api_key, endpoint, model_name, document_file, output_file, chunk_size=-1, chunk_overlap=-1):
+def process_document_file(api_key, endpoint, model_name, document_file, output_file, chunk_size=-1, chunk_overlap=-1, chunk_method="fixed"):
     """
     Process a single document file for embedding.
     
@@ -27,7 +27,7 @@ def process_document_file(api_key, endpoint, model_name, document_file, output_f
     # Handle TF-IDF model
     if model_name.lower() == "tfidf":
         print("Using TF-IDF embedding model")
-        process_jsonl_documents_tfidf(document_file, output_file, chunk_size, chunk_overlap)
+        process_jsonl_documents_tfidf(document_file, output_file, chunk_size, chunk_overlap, chunk_method)
         return
     
     # Regular embedding process
@@ -36,7 +36,7 @@ def process_document_file(api_key, endpoint, model_name, document_file, output_f
             file_json = json.loads(line)
             text = file_json['text']
             doc_id = file_json['doc_id']
-            embed_document(api_key, endpoint, model_name, text, doc_id, document_file, output_file, chunk_size, chunk_overlap)
+            embed_document(api_key, endpoint, model_name, text, doc_id, document_file, output_file, chunk_size, chunk_overlap, chunk_method)
     
     print(f"Embeddings saved to: {output_file}")
 
@@ -104,6 +104,7 @@ if __name__ == "__main__":
     parser.add_argument("--document_folder", type=str, required=False, default=None)
     parser.add_argument("--chunk_size", type=int, required=False, default=-1)
     parser.add_argument("--chunk_overlap", type=int, required=False, default=-1)
+    parser.add_argument("--chunk_method", type=str, required=False, default="fixed")
     parser.add_argument("--terminate_on_error", action="store_true", required=False)
     parser.add_argument("--output_file", type=str, required=True)
     args = parser.parse_args()
@@ -115,6 +116,7 @@ if __name__ == "__main__":
     document_folder = args.document_folder
     chunk_size = args.chunk_size
     chunk_overlap = args.chunk_overlap
+    chunk_method = args.chunk_method
     output_file = args.output_file
     terminate_on_error = args.terminate_on_error
 
