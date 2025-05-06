@@ -12,21 +12,6 @@ import nltk.data
 BATCH_SIZE = 100
 EMBED_DIM = 768  # Adjust as needed
 
-def check_nltk_data():
-    """Check if required NLTK data is downloaded, if not download it."""
-    try:
-        nltk.data.find('corpora/stopwords')
-        nltk.data.find('tokenizers/punkt')
-        nltk.data.find('corpora/wordnet')
-    except LookupError:
-        print("Downloading required NLTK data...")
-        nltk.download('stopwords')
-        nltk.download('punkt')
-        nltk.download('wordnet')
-
-# Check and download NLTK data if needed
-check_nltk_data()
-
 stop_words = set(stopwords.words('english'))
 lemmatizer = WordNetLemmatizer()
 

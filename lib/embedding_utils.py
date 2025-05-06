@@ -4,8 +4,6 @@ import os
 import glob
 import re
 import sys
-import nltk
-from nltk.tokenize import sent_tokenize
 
 def chunk_text_fixed(text, chunk_size, chunk_overlap):
     """
@@ -62,28 +60,23 @@ def chunk_text_sentence(text, chunk_size, chunk_overlap):
         yield text
         return
 
-    # First try NLTK's sentence tokenizer
-    try:
-        nltk.data.find('tokenizers/punkt')
-        sentences = sent_tokenize(text)
-    except (LookupError, Exception):
-        # Fallback to a more robust splitting approach
-        # Split on common sentence endings, but also handle cases where they might be missing
-        sentences = []
-        current_sentence = []
-        words = text.split()
-        
-        for word in words:
-            current_sentence.append(word)
-            # Check for sentence endings or if we've reached a reasonable length
-            if (word.endswith(('.', '!', '?')) or 
-                len(' '.join(current_sentence)) > 100):  # Arbitrary length threshold
-                sentences.append(' '.join(current_sentence))
-                current_sentence = []
-        
-        # Add any remaining text as a sentence
-        if current_sentence:
+    # Fallback to a more robust splitting approach
+    # Split on common sentence endings, but also handle cases where they might be missing
+    sentences = []
+    current_sentence = []
+    words = text.split()
+    
+    for word in words:
+        current_sentence.append(word)
+        # Check for sentence endings or if we've reached a reasonable length
+        if (word.endswith(('.', '!', '?')) or 
+            len(' '.join(current_sentence)) > 100):  # Arbitrary length threshold
             sentences.append(' '.join(current_sentence))
+            current_sentence = []
+    
+    # Add any remaining text as a sentence
+    if current_sentence:
+        sentences.append(' '.join(current_sentence))
 
     current_chunk = []
     current_size = 0
