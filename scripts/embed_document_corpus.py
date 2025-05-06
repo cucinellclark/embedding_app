@@ -6,7 +6,8 @@ from embedding_utils import embed_document, test_embedding_endpoint
 from text_utils import validate_jsonl_file, validate_jsonl_files_in_directory
 from tfidf_embed import process_jsonl_documents_tfidf
 
-def process_document_file(api_key, endpoint, model_name, document_file, output_file, chunk_size=-1, chunk_overlap=-1, chunk_method="fixed"):
+def process_document_file(api_key, endpoint, model_name, document_file, output_file, chunk_size=-1, chunk_overlap=-1, model_config_file=None, chunk_method="fixed"):
+
     """
     Process a single document file for embedding.
     
@@ -25,9 +26,11 @@ def process_document_file(api_key, endpoint, model_name, document_file, output_f
     print(f"Processing document file: {document_file}")
     
     # Handle TF-IDF model
+    # if there is not a model config file, then we are training a new model
+    # if there is a model config file, then we are using a pre-trained model
     if model_name.lower() == "tfidf":
         print("Using TF-IDF embedding model")
-        process_jsonl_documents_tfidf(document_file, output_file, chunk_size, chunk_overlap, chunk_method)
+        process_jsonl_documents_tfidf(document_file, output_file, chunk_size, chunk_overlap, chunk_method, model_config_file)
         return
     
     # Regular embedding process
@@ -40,7 +43,7 @@ def process_document_file(api_key, endpoint, model_name, document_file, output_f
     
     print(f"Embeddings saved to: {output_file}")
 
-def process_document_folder(api_key, endpoint, model_name, document_folder, output_file, chunk_size=-1, chunk_overlap=-1,):
+def process_document_folder(api_key, endpoint, model_name, document_folder, output_file, chunk_size=-1, chunk_overlap=-1, model_config_file=None):
     """
     Process all documents in a folder for embedding.
     
@@ -58,6 +61,8 @@ def process_document_folder(api_key, endpoint, model_name, document_folder, outp
     print(f"Processing documents in folder: {document_folder}")
     
     # Handle TF-IDF model
+    # if there is not a model config file, then we are training a new model
+    # if there is a model config file, then we are using a pre-trained model
     if model_name.lower() == "tfidf":
         print('haven\'t implemented this yet')
         sys.exit(1)
@@ -107,6 +112,7 @@ if __name__ == "__main__":
     parser.add_argument("--chunk_method", type=str, required=False, default="fixed")
     parser.add_argument("--terminate_on_error", action="store_true", required=False)
     parser.add_argument("--output_file", type=str, required=True)
+    parser.add_argument("--model_config_file", type=str, required=False, default=None)
     args = parser.parse_args()
 
     api_key = args.api_key
@@ -119,7 +125,7 @@ if __name__ == "__main__":
     chunk_method = args.chunk_method
     output_file = args.output_file
     terminate_on_error = args.terminate_on_error
-
+    model_config_file = args.model_config_file
     # Check output parameters first
     if not output_file:
         print("Error: output_file is required.")
@@ -166,9 +172,9 @@ if __name__ == "__main__":
         print("Error: Please provide either document_file or document_folder, not both.")
         sys.exit(1)
     elif document_file:
-        process_document_file(api_key, endpoint, model_name, document_file, output_file, chunk_size, chunk_overlap)
+        process_document_file(api_key, endpoint, model_name, document_file, output_file, chunk_size, chunk_overlap, model_config_file)
     elif document_folder: 
-        process_document_folder(api_key, endpoint, model_name, document_folder, output_file, chunk_size, chunk_overlap)
+        process_document_folder(api_key, endpoint, model_name, document_folder, output_file, chunk_size, chunk_overlap, model_config_file)
     else:
         print("Error: Please provide either document_file or document_folder.")
         sys.exit(1)
