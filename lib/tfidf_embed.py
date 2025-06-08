@@ -37,11 +37,11 @@ def stream_document_batches(doc_file, batch_size=100):
         for line in f:
             file_path = line.strip()
             if os.path.exists(file_path):
-                with open(file_path, "r", encoding="utf-8") as doc_file:
-                    text = doc_file.read()
-                    batch.append(preprocess_text(text))
+                with open(file_path, "r", encoding="utf-8") as fp:
+                    text = fp.read()
+                    batch.append(text)
             else:
-                batch.append(preprocess_text(file_path))
+                batch.append(file_path)
 
             if len(batch) >= batch_size:
                 yield batch
@@ -55,25 +55,33 @@ def stream_all_documents(doc_file):
         for line in f:
             file_path = line.strip()
             if os.path.exists(file_path):
-                with open(file_path, "r", encoding="utf-8") as doc_file:
-                    text = doc_file.read()
-                    yield preprocess_text(text)
+                with open(file_path, "r", encoding="utf-8") as fp:
+                    text = fp.read()
+                    yield text
             else:
-                yield preprocess_text(file_path)
+                yield file_path
 
 def stream_jsonl_text(jsonl_file):
     """Stream documents from a JSONL file."""
     with open(jsonl_file, 'r') as f:
         for line in f:
-            doc = json.loads(line)
-            yield preprocess_text(doc['text'])
+            try: 
+                doc = json.loads(line)
+                yield doc['text']
+            except:
+                print(f"Error loading document: {line}")
+                continue
 
 def stream_jsonl_documents(jsonl_file):
     """Stream documents from a JSONL file."""
     with open(jsonl_file, 'r') as f:
         for line in f:
-            doc = json.loads(line)
-            yield doc['doc_id'], preprocess_text(doc['text'])
+            try: 
+                doc = json.loads(line)
+                yield doc['doc_id'], doc['text']
+            except:
+                print(f"Error loading document: {line}")
+                continue
 
 def load_vectorizer_from_config(model_config_file, jsonl_file):
     """
@@ -86,6 +94,7 @@ def load_vectorizer_from_config(model_config_file, jsonl_file):
     Returns:
         tfidf_vectorizer: The loaded or newly created TF-IDF vectorizer
     """
+    
     if not model_config_file or not os.path.exists(model_config_file):
         print("No model config file provided or file does not exist. Creating new vectorizer.")
         return None
@@ -101,7 +110,7 @@ def load_vectorizer_from_config(model_config_file, jsonl_file):
     model_prefix = config['model_prefix']
     vocab_path = f"{model_prefix}_vocab.npy"
     idf_path = f"{model_prefix}_idf.npy"
-    
+
     if not os.path.exists(vocab_path) or not os.path.exists(idf_path):
         print(f"Warning: Vectorizer components not found at {model_prefix}. Creating new vectorizer.")
         return None
@@ -151,25 +160,10 @@ def create_new_vectorizer(vectorizer_file, jsonl_file):
     idf_values = tfidf_vectorizer.idf_
     np.save(f"{vectorizer_file}_idf.npy", idf_values)
     
+    print(f"Saved vectorizer components to {vectorizer_file}_vocab.npy and {vectorizer_file}_idf.npy")
     return tfidf_vectorizer
 
-    # Step 3: Process batches, collect results
-    print("Processing batches and accumulating TF-IDF matrix...")
-    all_tfidf = []
-
-    for i, batch in enumerate(stream_document_batches(documents_file, BATCH_SIZE)):
-        tfidf_matrix = tfidf_vectorizer.transform(batch).toarray()
-        all_tfidf.append(tfidf_matrix)
-        print(f"Processed batch {i} with shape {tfidf_matrix.shape}")
-
-    # Concatenate and save
-    final_matrix = np.vstack(all_tfidf)
-    np.save(output_file, final_matrix)
-
-    print(f"\nSaved final TF-IDF matrix with shape {final_matrix.shape} to {output_file}")
-    print(f"Saved vectorizer components to {vectorizer_file}_vocab.npy and {vectorizer_file}_idf.npy")
-
-def process_jsonl_documents_tfidf(jsonl_file, output_file, chunk_size=-1, chunk_overlap=-1, model_config_file=None, chunk_method="fixed"):
+def process_jsonl_documents_tfidf(jsonl_file, output_file, chunk_size=-1, chunk_overlap=-1, chunk_method="fixed",model_config_file=None):
 
     """
     Process a JSONL file containing documents and generate TF-IDF embeddings.
@@ -181,14 +175,32 @@ def process_jsonl_documents_tfidf(jsonl_file, output_file, chunk_size=-1, chunk_
         chunk_overlap: Overlap between chunks
         model_config_file: Path to a JSON file containing model configuration
     """
+
+    tmp_file = output_file.replace(".jsonl", "_tmp.jsonl")
+    print(f'preprocessing {jsonl_file} to {tmp_file}')
+    count = 0
+    with open(tmp_file, 'w') as out_f:
+        for doc_id, text in stream_jsonl_documents(jsonl_file):
+            count += 1
+            # print(f'{count} documents processed', end='\r')
+            out_f.write(json.dumps(
+                {
+                    "doc_id": doc_id,
+                    "text": preprocess_text(text),
+                    "chunk_size": chunk_size,
+                    "chunk_overlap": chunk_overlap,
+                    "chunk_method": chunk_method
+                }
+            ) + '\n')
+
     vectorizer_file = output_file.replace(".jsonl", "")
     
     # Try to load a pre-trained vectorizer from the config file
-    tfidf_vectorizer = load_vectorizer_from_config(model_config_file, jsonl_file)
-    
+    tfidf_vectorizer = load_vectorizer_from_config(model_config_file, tmp_file)
+
     # If no pre-trained vectorizer was loaded, create a new one
     if tfidf_vectorizer is None:
-        tfidf_vectorizer = create_new_vectorizer(vectorizer_file, jsonl_file)
+        tfidf_vectorizer = create_new_vectorizer(vectorizer_file, tmp_file)
 
     # Step 3: Process batches, collect results
     print("Processing batches and accumulating TF-IDF matrix...")
@@ -199,7 +211,7 @@ def process_jsonl_documents_tfidf(jsonl_file, output_file, chunk_size=-1, chunk_
     batch_metadata = []
 
     chunk_iterator = chunk_text(chunk_method)
-    for doc_id, text in stream_jsonl_documents(jsonl_file):
+    for doc_id, text in stream_jsonl_documents(tmp_file):
         chunk_index = 0
         for chunk in chunk_iterator(text, chunk_size, chunk_overlap):
             batch.append(chunk)
@@ -211,7 +223,7 @@ def process_jsonl_documents_tfidf(jsonl_file, output_file, chunk_size=-1, chunk_
                 all_metadata.extend(batch_metadata)
                 batch = []
                 batch_metadata = []
-                print(f"Processed batch of {len(tfidf_matrix)} documents")
+                # print(f"Processed batch of {len(tfidf_matrix)} documents")
 
     # Process any remaining documents
     if batch:

@@ -6,7 +6,7 @@ from embedding_utils import embed_document, test_embedding_endpoint
 from text_utils import validate_jsonl_file, validate_jsonl_files_in_directory
 from tfidf_embed import process_jsonl_documents_tfidf
 
-def process_document_file(api_key, endpoint, model_name, document_file, output_file, chunk_size=-1, chunk_overlap=-1, model_config_file=None, chunk_method="fixed"):
+def process_document_file(api_key, endpoint, model_name, document_file, output_file, chunk_size=-1, chunk_overlap=-1, chunk_method="fixed", model_config_file=None):
 
     """
     Process a single document file for embedding.
@@ -172,9 +172,9 @@ if __name__ == "__main__":
         print("Error: Please provide either document_file or document_folder, not both.")
         sys.exit(1)
     elif document_file:
-        process_document_file(api_key, endpoint, model_name, document_file, output_file, chunk_size, chunk_overlap, model_config_file)
+        process_document_file(api_key, endpoint, model_name, document_file, output_file, chunk_size, chunk_overlap, chunk_method, model_config_file)
     elif document_folder: 
-        process_document_folder(api_key, endpoint, model_name, document_folder, output_file, chunk_size, chunk_overlap, model_config_file)
+        process_document_folder(api_key, endpoint, model_name, document_folder, output_file, chunk_size, chunk_overlap, chunk_method, model_config_file)
     else:
         print("Error: Please provide either document_file or document_folder.")
         sys.exit(1)
