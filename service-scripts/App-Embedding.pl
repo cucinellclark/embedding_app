@@ -36,8 +36,8 @@ sub create_embeddings {
     die "Error: model_name parameter is required\n" unless $model_name;
     my $chunk_size = $params->{chunk_size} || -1;
     my $chunk_overlap = $params->{chunk_overlap} || -1;
-    my $output_path = $params->{output_path} || "";
-    my $output_file = $params->{output_file} || "output.jsonl";
+    my $output_path = $params->{output_path};
+    my $output_file = $params->{output_file};
 
     
     # Construct the command to run the embed_document_corpus.py script
@@ -46,7 +46,7 @@ sub create_embeddings {
         "--api_key", $api_key,
         "--endpoint", $embedding_endpoint,
         "--model_name", $model_name,
-        "--output_file", $output_file
+        "--output_folder", $output_path
     );
     
     # Add document_file or document_folder parameter if provided
@@ -82,6 +82,6 @@ sub create_embeddings {
     
     # Return the output file path
     return {
-        output_file => $output_file
+        output_folder => $output_path
     };
 }
